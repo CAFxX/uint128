@@ -146,25 +146,26 @@ func (u Uint128) QuoRem(v Uint128) (q, r Uint128) {
 		var r64 uint64
 		q, r64 = u.QuoRem64(v.lo)
 		r = From64(r64)
-	} else {
-		// generate a "trial quotient," guaranteed to be within 1 of the actual
-		// quotient, then adjust.
-		n := uint(bits.LeadingZeros64(v.hi))
-		v1 := v.Lsh(n)
-		u1 := u.Rsh(1)
-		tq, _ := bits.Div64(u1.hi, u1.lo, v1.hi)
-		tq >>= 63 - n
-		if tq != 0 {
-			tq--
-		}
-		q = From64(tq)
-		// calculate remainder using trial quotient, then adjust if remainer is
-		// greater than divisor
-		r = u.Sub(v.Mul64(tq))
-		if r.Cmp(v) >= 0 {
-			q = q.Add64(1)
-			r = r.Sub(v)
-		}
+		return
+	}
+
+	// generate a "trial quotient," guaranteed to be within 1 of the actual
+	// quotient, then adjust.
+	n := uint(bits.LeadingZeros64(v.hi))
+	v1 := v.Lsh(n)
+	u1 := u.Rsh(1)
+	tq, _ := bits.Div64(u1.hi, u1.lo, v1.hi)
+	tq >>= 63 - n
+	if tq != 0 {
+		tq--
+	}
+	q = From64(tq)
+	// calculate remainder using trial quotient, then adjust if remainer is
+	// greater than divisor
+	r = u.Sub(v.Mul64(tq))
+	if r.Cmp(v) >= 0 {
+		q = q.Add64(1)
+		r = r.Sub(v)
 	}
 	return
 }
