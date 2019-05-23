@@ -7,9 +7,6 @@ import (
 	"strconv"
 )
 
-// Zero is a zero-valued uint128.
-var Zero Uint128
-
 // A Uint128 is an unsigned 128-bit number.
 type Uint128 struct {
 	lo, hi uint64
@@ -17,7 +14,7 @@ type Uint128 struct {
 
 // IsZero returns true if u == 0.
 func (u Uint128) IsZero() bool {
-	return u == Zero
+	return u == Uint128{}
 }
 
 // Equals returns true if u == v.
@@ -36,24 +33,27 @@ func (u Uint128) Equals64(v uint64) bool {
 // Cmp compares two Uint128 values. The return value follows the convention of
 // math/big.
 func (u Uint128) Cmp(v Uint128) int {
-	if u == v {
-		return 0
-	} else if u.hi < v.hi || (u.hi == v.hi && u.lo < v.lo) {
-		return -1
-	} else {
-		return 1
+	if u.hi == v.hi {
+		return cmp(u.lo, v.lo)
 	}
+	return cmp(u.hi, u.lo)
+}
+	
+func cmp(u, v uint64) int {
+	if u > v {
+		return 1
+	} else if u < v {
+		return -1
+	}
+	return 0
 }
 
 // Cmp64 compares u to v. The return value follows the convention of math/big.
 func (u Uint128) Cmp64(v uint64) int {
-	if u.hi > 0 || u.lo > v {
+	if u.hi > 0 {
 		return 1
-	} else if u.lo == v {
-		return 0
-	} else {
-		return -1
 	}
+	return cmp(u.lo, v)
 }
 
 // And returns u&v.
@@ -158,7 +158,7 @@ func (u Uint128) QuoRem(v Uint128) (q, r Uint128) {
 			tq--
 		}
 		q = From64(tq)
-		// calculate remainder using trial quotient, then adjust if remainder is
+		// calculate remainder using trial quotient, then adjust if remainer is
 		// greater than divisor
 		r = u.Sub(v.Mul64(tq))
 		if r.Cmp(v) >= 0 {
@@ -206,6 +206,9 @@ func (u Uint128) Rsh(n uint) (s Uint128) {
 
 // String returns the base-10 representation of u as a string.
 func (u Uint128) String() string {
+	if u.hi == 0 {
+		return strconv.FormatUint(u.lo, 10)
+	}
 	buf := make([]byte, 40) // log10(2^128) < 40
 	for i := range buf {
 		buf[i] = '0'
@@ -240,14 +243,9 @@ func (u Uint128) Big() *big.Int {
 	return i
 }
 
-// New returns the Uint128 value (lo,hi).
-func New(lo, hi uint64) Uint128 {
-	return Uint128{lo, hi}
-}
-
 // From64 converts v to a Uint128 value.
 func From64(v uint64) Uint128 {
-	return New(v, 0)
+	return Uint128{v, 0}
 }
 
 // FromBytes converts b to a Uint128 value.
